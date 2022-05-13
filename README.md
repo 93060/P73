@@ -12,21 +12,33 @@ ADD pluto.sh /
 RUN chmod 755 /pluto.sh
 ENTRYPOINT ["bash", "pluto.sh"] 
 ```
+
+Dockerfile buduje obraz na podstawie systemu alpine w najnowszej wersji. Następnie instalowany jest pakiet bash, ponieważ nie występuje on w tej wersji Alpine'a. 
+Kolejną rzeczą jest dodanie pliku ze skryptem pluto.sh do katalogu głównego kontenera oraz przyznanie uprawnień do tego pliku. ENTRYPOINT określa domyślne 
+polecenia dla kontenera, które wykona się po jego uruchomieniu. 
+
 **Skrypt pluto.sh**
 ```bash
 #!/bin/bash
 touch /logi/info.log
 (printf "Czas uruchomienia kontenera:\n" && date && printf "\nDostepna pamiec hosta:\n" && sed -n "1p" /proc/meminfo && printf "\nLimit pamieci przydzielony kontenerowi w bajtach:\n" && sed -n "1p" /sys/fs/cgroup/memory/memory.limit_in_bytes) > /logi/info.log
 ```
+
+Skrypt pluto.sh w pierwszej kolejności tworzy plik info.log w katalogu logi, po czym wypisuje w tym pliku czas uruchomienia kontnera (w rzeczywistości jest to czas
+który skrypt pluto.sh pobierze podczas wykonywania, więc jest to minimalnie później niż uruchomiono kontener), ilość pamięci hosta oraz limit przydzielonej pamięci
+kontenerowi w bajtach. 
+
 ### 2. Zbudowanie obrazu lab4docker
 **Polecenie** 
 ```
 $ docker build -t lab4docker .
 ```
 **Wynik użytego polecenia** 
+
 ![1](https://user-images.githubusercontent.com/103113980/168178792-275116ad-3739-49de-af33-a28b4820b759.png)
 
 ### 3. Utworzenie wolumenu RemoteVol
+
 **Polecenie** 
 ```
 $ docker volume create \
@@ -37,10 +49,23 @@ $ docker volume create \
 	--name RemoteVol
 ```
 **Wynik użytego polecenia** 
+
 ![2](https://user-images.githubusercontent.com/103113980/168179030-9d6486ff-795e-4401-a615-734540b96161.png)
 
+Jako, że systemem maszyny macierzystej jest Windows, katalog udostępniany jest poprzez CIFS flagą `--opt type=cifs`. Parametr `--opt device` określa ścieżkę do 
+udostępnionego folderu. `--opt o` określa adres IP systemu macierzystego, nazwę oraz hasło użytkownika oraz uprawnienia do folderu.  
+
 **Udostępnienie folderu na systemie macierzystym wraz ze sprawdzeniem adresu IP**
+
 ![3](https://user-images.githubusercontent.com/103113980/168179331-d93c18c2-efb2-42f5-99f9-d4b0723b2495.png)
+
+Utworzyłem folder logi na dysku C systemu macierzystego. Następnie poprzez właściwości udostępniłem go w sieci. Ważne jest, aby system macierzysty był widoczny
+dla innych urządzeń w sieci lokalnej.
+
+**Aby kontener mógł komunikować się z hostem macierzystym należy zmienić tryb sieci - w tym przypadku na mostkowaną kartę sieciową.**
+
+![image](https://user-images.githubusercontent.com/103113980/168390216-2ed889b4-4859-4b5c-9f1a-28b36ae75fa5.png)
+
 
 ### 4. Uruchomienie kontenera alpine4 
 
@@ -50,6 +75,7 @@ $ docker run --name alpine4 -m 512m  -it --mount source=RemoteVol,target=/logi l
 ```
 
 **Wynik użytego polecenia** 
+
 ![4](https://user-images.githubusercontent.com/103113980/168180101-d879b385-2813-4f61-8e79-43725e66c042.png)
 
 ### 5. Potwierdzenie działania wykonanego zadania
